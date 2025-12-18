@@ -81,9 +81,9 @@ const fetchChapterById= async()=>{
   try {
     const id= route.params.id
     const token= localStorage.getItem("token")
-    const res= await getChapterById(id, token)
+    const data= await getChapterById(id, token)
 
-    chapter.value= res.data.data
+    chapter.value= data
     content.value= chapter.value.content
     novelId.value = chapter.value.novel_id
 
