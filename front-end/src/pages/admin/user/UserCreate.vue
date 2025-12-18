@@ -79,13 +79,12 @@
 
 <script setup>
 import { UserPlus, UserCircle } from "lucide-vue-next"
-import axios from "axios"
 import { ref } from "vue"
 import { useRouter } from "vue-router"
+import { createUser } from "../../../services/user.service"
 
 const error= ref(null)
 const router= useRouter()
-const API= import.meta.env.VITE_API_URL
 
 const username= ref('')
 const email= ref('')
@@ -114,20 +113,8 @@ const handleCreate= async()=> {
     if(avatar.value){
       formData.append("avatar", avatar.value)
     }
-    
-    const res = await axios.post(
-      `${API}/user/create`,
-      formData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data"
-        }
-      }
-    )
-
-    
-     router.push({name: 'UserList'}) 
+    await createUser(formData, token)
+    router.push({name: 'UserList'}) 
     
   } catch (err) {
      error.value= err.response?.data?.error || 'Buat akun user gagal!'

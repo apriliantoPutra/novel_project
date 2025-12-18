@@ -14,7 +14,6 @@ import DashboardAdminPage from "../pages/admin/Dashboard.vue"
 import UserListPage from "../pages/admin/user/UserList.vue"
 import UserCreatePage from "../pages/admin/user/UserCreate.vue"
 import UserEditPage from "../pages/admin/user/UserEdit.vue"
-import UserDetailPage from "../pages/admin/user/UserDetail.vue"
 import GenrePage from "../pages/admin/Genre.vue"
 import NovelListAdminPage from "../pages/admin/novel/NovelList.vue"
 import NovelCreateAdminPage from "../pages/admin/novel/NovelCreate.vue"
@@ -37,6 +36,8 @@ import ChapterDetailAuthorPage from "../pages/author/novel/ChapterDetail.vue"
 import LoginPage from "../pages/auth/Login.vue"
 import RegisterPage from "../pages/auth/Register.vue"
 import NotFound from "../pages/NotFound.vue"
+
+import {useAuthStore} from "../stores/auth.store"
 
 
 const routes= [
@@ -95,12 +96,6 @@ const routes= [
                 name: 'UserEdit',
                 props: true,
                 component: UserEditPage
-            },
-            {
-                path: '/user-detail/:id',
-                name: 'UserDetail',
-                props: true,
-                component: UserDetailPage
             },
             {
                 path: '/genre',
@@ -246,26 +241,29 @@ const router= createRouter({
 })
 
 router.beforeEach((to, from, next)=> {
-    const token= localStorage.getItem('token')
-    const user= JSON.parse(localStorage.getItem('user'))
-    if ((to.name === 'Home' || to.name === 'Login') &&  token && user){
-        if(user.role === 'admin'){
+    const authStore= useAuthStore()
+
+    // Sudah login dan akses halaman Home atau Login
+    if ((to.name === 'Home' || to.name === 'Login') &&  authStore.isLogin){
+        if(authStore.role === 'admin'){
             return next({name: 'DashboardAdmin'})
         }
-        if(user.role === 'author'){
+        if(authStore.role === 'author'){
             return next({name: 'DashboardAuthor'})
         }
 
         return next()
     }
 
-    if (to.meta.requiresAuth && !token){
+    // Jika halaman butuh login tapi user belum login
+    if (to.meta.requiresAuth && !authStore.isLogin){
         return next({
             name: 'Login',
             query: {message: 'Silakan login terlebih dahulu untuk melanjutkan.'}
         })
     }
-    if(to.meta.role && user?.role !== to.meta.role){
+    // Jika halaman butuh role tertentu
+    if(to.meta.role && authStore.role !== to.meta.role){
         return next({ 
             name: 'Login',
             query: { message: 'Akses ditolak! Role kamu tidak diizinkan ke halaman ini.'}

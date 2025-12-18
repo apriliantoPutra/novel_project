@@ -80,12 +80,11 @@
 </template>
 
 <script setup>
-import axios from "axios"
 import { Plus, Image } from "lucide-vue-next"
 import { onMounted, ref } from "vue"
 import { useRouter } from "vue-router"
-const API= import.meta.env.VITE_API_URL
-
+import {createNovel} from "../../../services/novel.service"
+import {getGenres} from "../../../services/genre.service"
 const error= ref(null)
 const router= useRouter()
 
@@ -107,12 +106,11 @@ const handleCoverImage= (e)=> {
 
 // fetch genres
 onMounted(()=> {
-  getGenres()
+  fetchGenres()
 })
-const getGenres= async()=> {
+const fetchGenres= async()=> {
   try {
-    const res= await axios.get(`${API}/genre`)
-    genres.value= res.data.data
+    genres.value= await getGenres()
   } catch (err){
     error.value= "Gagal memuat data pengguna"
     console.log(err)
@@ -135,15 +133,7 @@ const handleCreate= async()=> {
         formData.append("cover", cover.value)
       }
       
-      const res= await axios.post(
-        `${API}/novel/create`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}` 
-          }
-        }
-      )
+      await createNovel(formData, token)
       router.push({name: "NovelAdminList"})
 
   } catch (err) {

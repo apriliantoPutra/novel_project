@@ -21,11 +21,11 @@ const {
 
 router.get('/', verifyToken, verifyRole('admin'),getAllUser);
 router.get('/detail', verifyToken, getUserByLogin);
-router.post('/create',  verifyToken, verifyRole('admin'),  upload.single('avatar'), createUser); 
 router.put('/edit',   verifyToken, upload.single('avatar'), updateUser);
 
-router.get('/detail/:id', verifyToken, verifyRole('admin'), getUserById);
-router.put('/edit/:id',   verifyToken,  verifyRole('admin'), upload.single('avatar'), updateUserById);
-router.delete('/delete/:id',  verifyToken, verifyRole('admin'), deleteUser);
 
+router.post('/',  verifyToken, verifyRole('admin'),  upload.single('avatar'), createUser); 
+router.get('/:id', verifyToken, verifyRole('admin'), getUserById);
+router.put('/:id',   verifyToken,  verifyRole('admin'), upload.single('avatar'), updateUserById);
+router.delete('/:id',  verifyToken, verifyRole('admin'), deleteUser);
 module.exports= router;

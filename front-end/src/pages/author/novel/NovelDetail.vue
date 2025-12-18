@@ -91,7 +91,7 @@
         </h3>
 
         <!-- Form Komentar -->
-        <div v-if="user" class="mb-6">
+        <div v-if="authStore.isLogin" class="mb-6">
           <form class="space-y-2" @submit.prevent="handleCreate">
             <textarea
               placeholder="Tulis komentar kamu..."
@@ -156,7 +156,7 @@
 
                 <!-- Tombol Edit & Delete (hanya pemilik atau admin) -->
                 <div
-                  v-if="user && (comment.user_id === user.id || user.role === 'admin')"
+                  v-if="authStore.isLogin && (comment.user_id === authStore.user.id || authStore.role === 'admin')"
                   class="flex gap-3 mt-2"
                 >
                   <button
@@ -193,15 +193,17 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import {useRoute, useRouter} from "vue-router"
-import axios from 'axios'
 import LoadingSpinner from "../../../components/Loading.vue"
-const API= import.meta.env.VITE_API_URL
+import {getRandomColor, formatTimeAgo} from "../../../utils/helpers"
+import {getNovelById} from "../../../services/novel.service"
+import {getComments, createComment, updateComment, deleteComment} from "../../../services/comment.service"
+import {useAuthStore} from "../../../stores/auth.store"
 
+const authStore= useAuthStore()
 const route= useRoute()
 const router= useRouter()
 
-const user= ref(null)
-
+// state
 const novel= ref(null)
 const loading = ref(true)
 const error = ref(null)
@@ -213,50 +215,35 @@ const editingId= ref(null)
 const editContent= ref('')
 
 onMounted(async()=> {
-  const savedUser= localStorage.getItem("user")
-  if(savedUser){
-      user.value= JSON.parse(savedUser)
-  }
-  await getNovelById()
-  await getComments()
   
+  await fetchNovelById()
+  await fetchCommnents()
 })
-const getNovelById= async()=> {
+const fetchNovelById= async()=> {
   try {
     const id= route.params.id
-    const response= await axios.get(`${API}/novel/detail/${id}`)
-    novel.value= response.data.data
-
+    novel.value= await getNovelById(id)
   } catch (err) {
     error.value= "Gagal memuat data novel"
-    console.error(err)
   } finally {
     loading.value= false
   }
 }
-
-const getComments= async()=> {
+const fetchCommnents= async()=> {
   try {
-    const res= await axios.get(`${API}/comment?novel_id=${novel.value.id}`)
-    comments.value= res.data.data
-  } catch (err) {
+    comments.value= await getComments(novel.value.id)
+  } catch {
     error.value= "Gagal memuat data comment"
-    console.log(err)
   }
 }
 
 const handleCreate=async()=> {
   try {
     const token= localStorage.getItem("token")
-    const res= await axios.post(`${API}/comment`, {
+    await createComment({
       novel_id: novel.value.id,
       content: content.value
-    },{
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-
+    }, token)
     router.go(0)
   } catch (err) {
     error.value= err.response?.data?.error || 'Terjadi kesalahan saat tambah comment'
@@ -271,67 +258,26 @@ const cancelEditing= ()=>{
   editingId.value= null
   editContent.value= ''
 }
-const updateComment= async(id)=> {
+const handleEdit= async(id)=> {
   try {
     const token= localStorage.getItem("token")
-    await axios.put(`${API}/comment/${id}`, {
+    await updateComment(id, {
       content: editContent.value
-    }, {
-      headers: {Authorization: `Bearer ${token}`}
-    })
-    
+    }, token)
     router.go(0)
   } catch (err) {
     error.value = err.response?.data?.error || "Gagal mengubah komentar";
   }
 }
-const deleteComment= async(id)=> {
+const handleDelete= async(id)=> {
    if (!confirm("Hapus komentar ini?")) return;
    try {
     const token= localStorage.getItem("token")
-    await axios.delete(`${API}/comment/${id}`, {
-      headers: {Authorization: `Bearer ${token}`}
-    })
-
+    await deleteComment(id, token)
     router.go(0)
    } catch (err) {
       error.value = err.response?.data?.error || "Gagal menghapus komentar";
    }
 }
 
-const colors= [
-    'bg-purple-500',
-    'bg-indigo-500',
-    'bg-pink-500',
-    'bg-blue-500',
-    'bg-teal-500',
-    'bg-amber-500',
-    'bg-rose-500',
-]
-function getRandomColor(){
-    const index= Math.floor(Math.random() * colors.length)
-    return colors[index]
-}
-
-function formatTimeAgo(dateString){
-  const date= new Date(dateString)
-  const now = new Date()
-  const diffMs= now - date
-
-  const seconds = Math.floor(diffMs / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  const weeks = Math.floor(days / 7);
-  const months = Math.floor(days / 30);
-  const years = Math.floor(days / 365);
-
-  if (seconds < 60) return "Just now";
-  if (minutes < 60) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
-  if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
-  if (days < 7) return `${days} day${days > 1 ? "s" : ""} ago`;
-  if (weeks < 5) return `${weeks} week${weeks > 1 ? "s" : ""} ago`;
-  if (months < 12) return `${months} month${months > 1 ? "s" : ""} ago`;
-  return `${years} year${years > 1 ? "s" : ""} ago`;
-}
 </script>

@@ -60,9 +60,7 @@ import { QuillEditor } from "@vueup/vue-quill"
 import "@vueup/vue-quill/dist/vue-quill.snow.css"
 import { useRoute, useRouter } from "vue-router"
 import { ref } from "vue"
-import axios from "axios"
-const API= import.meta.env.VITE_API_URL
-
+import {createChapter} from "../../../services/chapter.service"
 const route= useRoute()
 const router= useRouter()
 
@@ -75,15 +73,11 @@ const error= ref(null)
 const handleCreate= async()=>{
   try {
     const token= localStorage.getItem("token")
-    const res= await axios.post(`${API}/novel/${novelId}/chapter`,{
+    await createChapter(novelId,{
       title: title.value,
       content: content.value,
       chapter_number: Number(chapter_number.value)
-    }, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
+    }, token)
     router.push({name: 'ChapterAuthorList', params:{novelId: novelId } })
     
   } catch (err) {

@@ -42,9 +42,6 @@
                 <td class="px-4 py-3">{{ user.email }}</td>
                 <td class="px-4 py-3 capitalize">{{ user.role }}</td>
                 <td class="px-4 py-3 flex justify-center gap-3">
-                  <RouterLink :to="{name: 'UserDetail', params: {id: user.id} }" class="text-blue-600 hover:text-blue-800">
-                    <Eye class="w-5 h-5" />
-                  </RouterLink>
                   <RouterLink :to="{name: 'UserEdit', params: {id: user.id} }" class="text-green-600 hover:text-green-800">
                     <Edit class="w-5 h-5" />
                   </RouterLink>
@@ -70,13 +67,11 @@
 </template>
 
 <script setup>
-import axios from "axios"
 import { Users, UserPlus, Eye, Edit, Trash2 } from "lucide-vue-next"
 import { onMounted, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import LoadingSpinner from "../../../components/Loading.vue"
-const API= import.meta.env.VITE_API_URL
-
+import { getUsers, deleteUser } from "../../../services/user.service"
 const route= useRoute()
 const router= useRouter()
 
@@ -85,21 +80,14 @@ const loading = ref(true)
 const error = ref(null)
 
 onMounted(() => {
-  getAllUser()
+  fetchUsers()
 })
 
 
-const getAllUser= async()=> {
+const fetchUsers= async()=> {
   try {
     const token= localStorage.getItem("token")
-
-    const response= await axios.get(`${API}/user`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-    users.value= response.data.data
-
+    users.value= await getUsers(token)
   } catch (err) {
     error.value= "Gagal memuat data pengguna"
     console.error(err)
@@ -113,15 +101,8 @@ const handleDelete= async(id)=> {
 
   try {
     const token= localStorage.getItem("token")
-
-    await axios.delete(`${API}/user/delete/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-
-    users.value= users.value.filter((u)=> u.id !== id)
-    alert("User berhasil dihapus!")
+    await deleteUser(id, token)
+    router.go(0)
 
   } catch (err) {
     error.value= err.response?.data?.error || 'Gagal menghapus user'

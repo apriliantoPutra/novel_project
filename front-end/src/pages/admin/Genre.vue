@@ -113,18 +113,15 @@
 <script setup>
 import { onMounted, ref } from "vue"
 import { BookOpen, Plus, Trash2, X } from "lucide-vue-next"
-import axios from "axios"
 import { useRouter } from "vue-router"
 import LoadingSpinner from "../../components/Loading.vue"
-const API= import.meta.env.VITE_API_URL
-
+import {getGenres, createGenre, deleteGenre} from "../../services/genre.service"
 const router= useRouter()
 
 // data state
 const genres = ref([])
 const loading= ref(true)
 const error= ref(null)
-const selectedGenre = ref({})
 
 // values for form
 const name= ref('')
@@ -143,14 +140,13 @@ function closeCreateModal() {
 }
 
 onMounted(()=> {
-  getGenres()
+  fetchGenres()
 })
 
 //  fetch API genres
-const getGenres= async()=> {
+const fetchGenres= async()=> {
   try {
-    const res= await axios.get(`${API}/genre`)
-    genres.value= res.data.data
+    genres.value= await getGenres()
   } catch (err){
     error.value= "Gagal memuat data pengguna"
     console.log(err)
@@ -161,17 +157,11 @@ const getGenres= async()=> {
 const handleCreate= async()=> {
   const token= localStorage.getItem("token")
   try {
-    const res= await axios.post(`${API}/genre/create`, {
+    await createGenre({
       name: name.value,
       description: description.value
-    },{
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
+    }, token)
     router.go(0)
-
-
   } catch (err) {
     error.value= "Gagal membuat genre"
     console.log(err)
@@ -181,17 +171,10 @@ const handleCreate= async()=> {
 }
 const handleDelete= async(id)=> {
   if (!confirm("Yakin ingin menghapus genre ini?")) return
-  
   const token= localStorage.getItem("token")
   try {
-    const res= await axios.delete(`${API}/genre/delete/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
+    await deleteGenre(id, token)
     router.go(0)
-
-
   } catch (err) {
     error.value= "Gagal menghapus genre"
     console.log(err)
@@ -200,18 +183,3 @@ const handleDelete= async(id)=> {
 
 </script>
 
-<style scoped>
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.animate-fadeIn {
-  animation: fadeIn 0.25s ease-out;
-}
-</style>

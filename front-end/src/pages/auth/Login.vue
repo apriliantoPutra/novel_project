@@ -1,8 +1,10 @@
 <template>
     <div class="min-h-screen flex items-center justify-center bg-purple-300">
         <div class="bg-white rounded-2xl shadow-2xl py-8 px-4 w-full max-w-md">
+            <RouterLink to="/" class="flex justify-center mb-2" >
+                <img src="/logo.png" alt="novel illustration" class="w-11 opacity-70">
+            </RouterLink>
             <h1 class="text-3xl font-bold text-purple-700 text-center mb-2">Login</h1>
-            <p class="text-center text-gray-500 mb-6">Masuk ke akunmu untuk melanjutkan</p>
             <form class="space-y-4" @submit.prevent="handleLogin">
                 <p v-if="message" class="text-purple-500 text-sm text-center mt-2">{{ message }}</p>
                 <p v-if="error" class="text-red-500 text-sm text-center mt-2">{{ error }}</p>
@@ -47,13 +49,14 @@
 </template>
 
 <script setup>
-import axios from "axios"
 import { ref } from "vue"
 import { Eye, EyeOff } from "lucide-vue-next"
 import { useRoute, useRouter } from "vue-router"
+import {useAuthStore} from "../../stores/auth.store"
+
+const authStore= useAuthStore()
 const router= useRouter()
 const route= useRoute()
-const API= import.meta.env.VITE_API_URL
 
 const showPassword= ref(false)
 const togglePassword= ()=> {
@@ -67,19 +70,11 @@ const message= ref(route.query.message || '')
 
 const handleLogin= async()=> {
     try {
-        const res= await axios.post(`${API}/auth/login`, {
-            username: username.value,
-            password: password.value
-        })
+        await authStore.login({username: username.value, password: password.value})
 
-        localStorage.setItem('token', res.data.tokenJWT)
-        localStorage.setItem('user', JSON.stringify(res.data.data))
-
-        const role= res.data.data.role
-
-        if (role === 'admin'){
+        if (authStore.role === 'admin'){
             router.push({name: 'DashboardAdmin'})
-        }else if (role === 'author'){
+        }else if (authStore.role === 'author'){
             router.push({name: 'DashboardAuthor'})
         }else {
             router.push({name: 'Home'})

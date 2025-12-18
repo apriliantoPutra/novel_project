@@ -21,7 +21,7 @@
         </h3>
 
         <!-- Form Komentar -->
-        <div v-if="user" class="mb-6">
+        <div v-if="authStore.isLogin" class="mb-6">
           <form class="space-y-2" @submit.prevent="handleCreate">
             <textarea
               placeholder="Tulis komentar kamu..."
@@ -62,7 +62,7 @@
 
                 <div class="flex gap-2">
                   <button
-                    @click="updateComment(comment.id)"
+                    @click="handleEdit(comment.id)"
                     class="px-3 py-1 bg-green-600 text-white text-xs rounded"
                   >
                     Save
@@ -85,7 +85,7 @@
 
                 <!-- Tombol Edit & Delete (hanya pemilik atau admin) -->
                 <div
-                  v-if="user && (comment.user_id === user.id || user.role === 'admin')"
+                  v-if="authStore.isLogin && (comment.user_id === authStore.user.id || authStore.role === 'admin')"
                   class="flex gap-3 mt-2"
                 >
                   <button
@@ -96,7 +96,7 @@
                   </button>
 
                   <button
-                    @click="deleteComment(comment.id)"
+                    @click="handleDelete(comment.id)"
                     class="text-red-600 text-xs hover:underline"
                   >
                     Delete
@@ -119,14 +119,16 @@
 </template>
 
 <script setup>
-import axios from "axios";
 import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import LoadingSpinner from "../../components/Loading.vue"
-const API= import.meta.env.VITE_API_URL
+import { formatTimeAgo } from "../../utils/helpers";
+import {getChapterById} from "../../services/chapter.service"
+import {getCommentsByChapter, createComment, updateComment, deleteComment} from "../../services/comment.service"
+import {useAuthStore} from "../../stores/auth.store"
 
-const user= ref(null)
-
+// state
+const authStore= useAuthStore()
 const chapter= ref({})
 const comments= ref([])
 const loading= ref(true)
@@ -141,55 +143,37 @@ const route= useRoute()
 const router= useRouter()
 
 onMounted(async()=> {
-  const savedUser= localStorage.getItem("user")
-  if(savedUser){
-      user.value= JSON.parse(savedUser)
-  }
-  await getChapter(),
-  await getComments()
+  await fetchChapterById(),
+  await fetchComments()
 
 })
-const getChapter= async()=>{
+const fetchChapterById= async()=>{
   try {
     const id= route.params.id
     const token= localStorage.getItem("token")
-    
-    const res= await axios.get(`${API}/chapter/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-    chapter.value= res.data.data
 
-  } catch (err) {
+    chapter.value= await getChapterById(id, token)
+  } catch {
     error.value= "Gagal memuat data chapter"
-    console.log(err)
   } finally{
     loading.value= false
   }
 }
-const getComments= async()=>{
+const fetchComments= async()=>{
   try {
-    const res= await axios.get(`${API}/comment?novel_id=${chapter.value.novel_id}&chapter_id=${chapter.value.id}`)
-    comments.value= res.data.data
-  } catch (err) {
+    comments.value= await getCommentsByChapter(chapter.value.novel_id, chapter.value.id)
+  } catch  {
     error.value= "Gagal memuat data comment"
-    console.log(err)
   }
 }
 const handleCreate=async()=> {
   try {
     const token= localStorage.getItem("token")
-    const res= await axios.post(`${API}/comment`, {
+    await createComment({
       novel_id: chapter.value.novel_id,
       chapter_id: chapter.value.id,
       content: content.value
-    },{
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-
+    }, token)
     router.go(0)
   } catch (err) {
     error.value= err.response?.data?.error || 'Terjadi kesalahan saat tambah comment'
@@ -204,52 +188,28 @@ const cancelEditing= ()=>{
   editingId.value= null
   editContent.value= ''
 }
-const updateComment= async(id)=> {
+const handleEdit= async(id)=> {
   try {
     const token= localStorage.getItem("token")
-    await axios.put(`${API}/comment/${id}`, {
+    await updateComment(id, {
       content: editContent.value
-    }, {
-      headers: {Authorization: `Bearer ${token}`}
-    })
-    
+    }, token)
     router.go(0)
   } catch (err) {
     error.value = err.response?.data?.error || "Gagal mengubah komentar";
   }
 }
-const deleteComment= async(id)=> {
+const handleDelete= async(id)=> {
    if (!confirm("Hapus komentar ini?")) return;
    try {
     const token= localStorage.getItem("token")
-    await axios.delete(`${API}/comment/${id}`, {
-      headers: {Authorization: `Bearer ${token}`}
-    })
-
+    await deleteComment(id, token)
     router.go(0)
    } catch (err) {
       error.value = err.response?.data?.error || "Gagal menghapus komentar";
    }
 }
 
-function formatTimeAgo(dateString){
-  const date= new Date(dateString)
-  const now = new Date()
-  const diffMs= now - date
-  const seconds = Math.floor(diffMs / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  const weeks = Math.floor(days / 7);
-  const months = Math.floor(days / 30);
-  const years = Math.floor(days / 365);
-  if (seconds < 60) return "Just now";
-  if (minutes < 60) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
-  if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
-  if (days < 7) return `${days} day${days > 1 ? "s" : ""} ago`;
-  if (weeks < 5) return `${weeks} week${weeks > 1 ? "s" : ""} ago`;
-  if (months < 12) return `${months} month${months > 1 ? "s" : ""} ago`;
-  return `${years} year${years > 1 ? "s" : ""} ago`;
-}
+
 
 </script>

@@ -14,8 +14,8 @@ const {
 }= require('../controllers/genreController');
 
 router.get('/', getAllGenre);
-router.get('/detail/:id', getGenreById);
-router.post('/create', verifyToken, verifyRole('admin'), createGenre);
-router.delete('/delete/:id', verifyToken, verifyRole('admin'),deleteGenre);
+router.get('/:id', getGenreById);
+router.post('/', verifyToken, verifyRole('admin'), createGenre);
+router.delete('/:id', verifyToken, verifyRole('admin'),deleteGenre);
 
 module.exports= router;

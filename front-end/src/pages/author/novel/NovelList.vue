@@ -86,11 +86,9 @@
 <script setup>
 import { onMounted, ref } from "vue"
 import { BookOpen, Plus, Eye, Edit, Trash2, List } from "lucide-vue-next"
-import axios from "axios"
 import LoadingSpinner from "../../../components/Loading.vue"
 import { useRouter } from "vue-router"
-const API= import.meta.env.VITE_API_URL
-
+import {getNovelsByAuthor, deleteNovel} from "../../../services/novel.service"
 const router= useRouter()
 
 // data state
@@ -99,19 +97,14 @@ const loading= ref(true)
 const error= ref(null)
 
 onMounted(()=> {
-  getNovels()
+  fetchNovels()
 })
 
 // fetch novels
-const getNovels= async()=> {
+const fetchNovels= async()=> {
   try {
     const token= localStorage.getItem("token")
-    const res= await axios.get(`${API}/novel/author`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-    novels.value= res.data.data
+    novels.value= await getNovelsByAuthor(token)
 
   } catch (err) {
     error.value= "Gagal memuat data novel"
@@ -125,13 +118,8 @@ const handleDelete= async(id)=> {
     if (!confirm("Yakin ingin menghapus novel ini?")) return
     const token= localStorage.getItem("token")
 
-    await axios.delete(`${API}/novel/delete/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
+    await deleteNovel(id, token)
      router.go(0)
-
   } catch (err) {
     err.value= "Gagal menghapus novel"
     console.log(err)

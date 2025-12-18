@@ -1,8 +1,10 @@
 <template>
     <div class="min-h-screen flex items-center justify-center bg-purple-300">
         <div class="bg-white rounded-2xl shadow-2xl py-8 px-4 w-full max-w-md">
+            <RouterLink to="/" class="flex justify-center mb-2" >
+                <img src="/logo.png" alt="novel illustration" class="w-11 opacity-70">
+            </RouterLink>
             <h1 class="text-3xl font-bold text-purple-700 text-center mb-2">Register</h1>
-            <p class="text-center text-gray-500 mb-6">Buat akun baru untuk mulai membaca</p>
             <form class="space-y-4" @submit.prevent="handleRegister">
                 <p v-if="error" class="text-red-500 text-sm text-center mt-2">{{ error }}</p>
                 <div>
@@ -73,12 +75,12 @@
 </template>
 
 <script setup>
-import axios from "axios"
 import { ref } from "vue"
 import { useRouter } from "vue-router"
 import { Eye, EyeOff } from "lucide-vue-next"
-const API= import.meta.env.VITE_API_URL
+import {useAuthStore} from "../../stores/auth.store"
 
+const authStore= useAuthStore()
 const username= ref('')
 const email= ref('')
 const password= ref('')
@@ -97,14 +99,12 @@ const toggleConfirmPassword = () => {
 
 const handleRegister= async()=>{
     try {
-        const res= await axios.post(`${API}/auth/register`, {
+        await authStore.register({
             username: username.value,
             email: email.value,
             password: password.value,
             konfirmasiPassword: konfirmasiPassword.value
         })
-        localStorage.setItem('token', res.data.tokenJWT)
-        localStorage.setItem('user', JSON.stringify(res.data.data))
 
         router.push({name: 'Home'}) 
     } catch (err) {

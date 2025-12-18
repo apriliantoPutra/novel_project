@@ -1,6 +1,8 @@
 <template>
   <div class="max-w-3xl mx-auto bg-white p-6 rounded-xl shadow-md">
-    <div v-if="error" class="text-red-500 text-center mt-4">{{ error }}</div>
+
+    <LoadingSpinner v-if="loading" />
+    <div v-else-if="error" class="text-red-500 text-center mt-4">{{ error }}</div>
     <template v-else>
       <h1 class="text-2xl font-bold text-purple-700 mb-6 flex items-center gap-2">
         <Edit class="w-6 h-6" /> Edit Pengguna
@@ -64,16 +66,17 @@
 </template>
 
 <script setup>
-import axios from "axios"
 import { Edit } from "lucide-vue-next"
 import { onMounted, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
-const API= import.meta.env.VITE_API_URL
+import { getUserById, updateUser  } from "../../../services/user.service"
+import LoadingSpinner from "../../../components/Loading.vue"
 
 const route= useRoute()
 const router= useRouter()
 
 const user = ref({})
+const loading= ref(true)
 const error = ref(null)
 const avatar= ref(null)
 const previewAvatar= ref(null)
@@ -83,17 +86,12 @@ onMounted(async()=> {
   try {
     const id= route.params.id
     const token= localStorage.getItem("token")
-
-    const res= await axios.get(`${API}/user/detail/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-    user.value= res.data.data
-
+    user.value= await getUserById(id, token)
   } catch (err) {
     error.value= "Gagal memuat data pengguna"
     console.error(err)
+  } finally {
+    loading.value= false
   }
 }) 
 
@@ -118,13 +116,7 @@ const handleUpdate = async () => {
     if (newPassword.value) formData.append("password", newPassword.value)
     if (avatar.value) formData.append("avatar", avatar.value)
 
-    await axios.put(`${API}/user/edit/${id}`, formData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "multipart/form-data"
-      }
-    })
-
+    await updateUser(id, formData, token)
     router.push({ name: "UserList" })
   } catch (err) {
     console.error(err)

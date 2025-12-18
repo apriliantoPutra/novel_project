@@ -64,10 +64,9 @@ import { QuillEditor } from "@vueup/vue-quill"
 import "@vueup/vue-quill/dist/vue-quill.snow.css"
 import LoadingSpinner from "../../../components/Loading.vue"
 import { useRoute, useRouter } from "vue-router"
-import axios from "axios"
 const route= useRoute()
 const router= useRouter()
-const API= import.meta.env.VITE_API_URL
+import {getChapterById, updateChapter} from "../../../services/chapter.service"
 
 const chapter= ref({})
 const content= ref('')
@@ -75,19 +74,15 @@ const loading= ref(true)
 const error= ref(null)
 const novelId = ref(null)
 onMounted(()=> {
-  getChapter()
+  fetchChapterById()
 
 })
-const getChapter= async()=>{
+const fetchChapterById= async()=>{
   try {
     const id= route.params.id
     const token= localStorage.getItem("token")
-    
-    const res= await axios.get(`${API}/chapter/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
+    const res= await getChapterById(id, token)
+
     chapter.value= res.data.data
     content.value= chapter.value.content
     novelId.value = chapter.value.novel_id
@@ -103,17 +98,13 @@ const handleEdit= async()=>{
   try {
     const id= route.params.id
     const token= localStorage.getItem("token")
-    const res= await axios.put(`${API}/chapter/${id}`,{
+    await updateChapter(id, {
       title: chapter.value.title,
       content: content.value,
       chapter_number: Number(chapter.value.chapter_number)
-    }, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-    router.push({name: 'ChapterAdminList', params:{novelId: novelId.value } })
+    }, token)
     
+    router.push({name: 'ChapterAdminList', params:{novelId: novelId.value } })
   } catch (err) {
     error.value= err.response?.data?.error || 'Terjadi kesalahan saat tambah chapter'
   }
