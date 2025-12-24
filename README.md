@@ -78,3 +78,10 @@ npm install
 VITE_API_URL=http://localhost:5000/api
 ```
 
+## 📸 Dokumentasi Aplikasi
+
+### Tampilan List Novel
+![Tampilan List Novel](docs/img1.png)
+
+### Tampilan Detail Novel
+![Tampilan Detail Novel](docs/img2.png)
