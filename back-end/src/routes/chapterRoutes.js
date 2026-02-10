@@ -14,9 +14,10 @@ const {
     deleteChapter
 }= require('../controllers/chapterController');
 
-router.post('/novel/:novelId/chapter', verifyToken, verifyRole('admin', 'author'),createChapter);
 router.get('/novel/:novelId/chapters', getChapterByNovel);
 router.get('/chapter/:id', verifyToken, getChapterById);
+
+router.post('/novel/:novelId/chapter', verifyToken, verifyRole('admin', 'author'),createChapter);
 router.put('/chapter/:id', verifyToken, verifyRole('admin', 'author'), updateChapter);
 router.delete('/chapter/:id', verifyToken, verifyRole('admin', 'author'), deleteChapter);
 

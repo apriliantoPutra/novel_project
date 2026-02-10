@@ -4,6 +4,8 @@ NovelApp adalah aplikasi web untuk membaca novel secara online yang mendukung si
 
 ---
 
+- Versi mobile dengan teknologi flutter: https://github.com/apriliantoPutra/novel_mobile.git
+
 ## ✨ Fitur Utama
 
 ### 👤 Reader

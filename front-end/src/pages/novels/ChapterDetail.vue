@@ -9,11 +9,21 @@
           </h1>
           <p class="text-gray-500 text-sm">Updated at {{ formatTimeAgo(chapter.updated_at) }}</p>
         </div>
-
+        <ButtonChapter
+          :hasPrevChapter="hasPrevChapter"
+          :hasNextChapter="hasNextChapter"
+          :prevChapterId="prevChapterId"
+          :nextChapterId="nextChapterId"
+        />
         <!-- Isi Novel -->
-        <div  v-html="chapter.content" class="bg-white rounded-xl shadow p-6 text-gray-800 leading-relaxed text-justify space-y-4">
+        <div  v-html="chapter.content" class="bg-white rounded-xl mb-8 shadow p-6 text-gray-800 leading-relaxed text-justify space-y-4">
         </div>
-
+        <ButtonChapter
+          :hasPrevChapter="hasPrevChapter"
+          :hasNextChapter="hasNextChapter"
+          :prevChapterId="prevChapterId"
+          :nextChapterId="nextChapterId"
+        />
         <!-- Komentar -->
       <div class="bg-white rounded-xl shadow p-6">
         <h3 class="text-2xl font-semibold text-purple-700 mb-4">
@@ -119,17 +129,20 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
+import ButtonChapter from "../../components/ButtonChapter.vue"
+import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import LoadingSpinner from "../../components/Loading.vue"
 import { formatTimeAgo } from "../../utils/helpers";
-import {getChapterById} from "../../services/chapter.service"
+import {getChaptersByNovelId, getChapterById} from "../../services/chapter.service"
 import {getCommentsByChapter, createComment, updateComment, deleteComment} from "../../services/comment.service"
 import {useAuthStore} from "../../stores/auth.store"
 
 // state
 const authStore= useAuthStore()
 const chapter= ref({})
+
+const chapters= ref([])
 const comments= ref([])
 const loading= ref(true)
 const error= ref(null)
@@ -142,30 +155,43 @@ const editContent= ref('')
 const route= useRoute()
 const router= useRouter()
 
-onMounted(async()=> {
-  await fetchChapterById(),
-  await fetchComments()
-
-})
-const fetchChapterById= async()=>{
+const loadData= async()=> {
   try {
+    loading.value = true
+    error.value = null
+
     const id= route.params.id
-    const token= localStorage.getItem("token")
+    const token = localStorage.getItem("token")
 
+    // fetch chapter detail
     chapter.value= await getChapterById(id, token)
-  } catch {
-    error.value= "Gagal memuat data chapter"
-  } finally{
-    loading.value= false
+    // fetch semua chapter pada novel ini
+    const novelId = chapter.value.novel_id
+    chapters.value = await getChaptersByNovelId(novelId)
+    // fetch comments
+    comments.value = await getCommentsByChapter(chapter.value.novel_id, chapter.value.id)
+    
+  }  catch (err) {
+    error.value = err.response?.data?.error || "Gagal memuat data chapter"
+  } finally {
+    loading.value = false
   }
 }
-const fetchComments= async()=>{
-  try {
-    comments.value= await getCommentsByChapter(chapter.value.novel_id, chapter.value.id)
-  } catch  {
-    error.value= "Gagal memuat data comment"
+
+onMounted(async()=> {
+ await loadData()
+})
+
+watch(
+  ()=> route.params.id,
+  async(newId, oldId)=> {
+    if (newId !== oldId) {
+      await loadData() // Muat ulang data
+    }
   }
-}
+)
+
+
 const handleCreate=async()=> {
   try {
     const token= localStorage.getItem("token")
@@ -210,6 +236,33 @@ const handleDelete= async(id)=> {
    }
 }
 
+// navigasi chapter
+const hasPrevChapter= computed(()=> {
+  return chapter.value.chapter_number > 1
+})
+const hasNextChapter= computed(()=> {
+  return chapter.value.chapter_number < chapters.value.length
+})
+const prevChapterId= computed(()=> {
+  if(!hasPrevChapter.value) return null
+  const currentIndex= chapters.value.findIndex(
+    chap => chap.chapter_number === chapter.value.chapter_number
+  )
+  if(currentIndex > 0){
+    return chapters.value[currentIndex -1].id
+  }
+  return null
+})
+const nextChapterId= computed(()=> {
+  if(!hasNextChapter.value) return null
+  const currentIndex= chapters.value.findIndex(
+    chap => chap.chapter_number === chapter.value.chapter_number
+  )
+  if(currentIndex < chapters.value.length -1){
+    return chapters.value[currentIndex +1].id
+  }
+  return null
+})
 
 
 </script>

@@ -1,3 +1,6 @@
+front_end_mobile/
+back-end-fastapi/
+
 # Logs
 logs
 *.log

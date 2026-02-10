@@ -61,8 +61,7 @@ const getUserByLogin= async (req, res)=> {
     try {
         const userId= req.user.id;
         const result= await pool.query(`
-        SELECT id, username, email, role, avatar_url, created_at
-        FROM users
+        SELECT * FROM users
         WHERE id= $1;`
         , [userId]
         );
@@ -70,16 +69,17 @@ const getUserByLogin= async (req, res)=> {
         if (result.rowCount === 0){
             return res.status(404).json({ error: 'User not found' });
         }
-        // Modifikasi avatar_url menjadi full URL
         const user = result.rows[0];
-        const userWithFullAvatarUrl = {
-            ...user,
-            avatar_url: user.avatar_url ? `http://localhost:5000${user.avatar_url}` : null
-        };
 
         res.status(200).json({
             message: 'User found',
-            data: userWithFullAvatarUrl,
+            data: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                role: user.role,
+                avatar_url: user.avatar_url ? `http://localhost:5000${user.avatar_url}` : null
+            },
         });
         
     } catch (error) {
@@ -204,7 +204,7 @@ const updateUserById= async (req, res)=> {
 const updateUser= async (req, res)=> {
     try {
         const userId= req.user.id;
-        const {username, email, password, role}= req.body;
+        const {username}= req.body;
 
         // cek apakah ada data
         const existing = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
@@ -224,43 +224,18 @@ const updateUser= async (req, res)=> {
             avatar_url= `/public/img/avatar/${req.file.filename}`;
         }
 
-        let hashedPassword= existing.rows[0].password;
-        if(password){
-            hashedPassword= await bcrypt.hash(password, 10);
-        }
-
-        const result = await pool.query(
+        await pool.query(
         `UPDATE users 
-        SET username = $1, email = $2, password = $3, role = $4, avatar_url = $5, updated_at = NOW()
-        WHERE id = $6
-        RETURNING id, username, email, role, avatar_url, updated_at;`,
+        SET username = $1, avatar_url = $2, updated_at = NOW()
+        WHERE id = $3;`,
         [username || existing.rows[0].username,
-        email || existing.rows[0].email,
-        hashedPassword,
-        role || existing.rows[0].role,
         avatar_url,
         userId]
         );
 
-       const updatedUser = result.rows[0];
-
-        // Bentuk response
-        const userResponse = {
-        id: updatedUser.id,
-        username: updatedUser.username,
-        email: updatedUser.email,
-        role: updatedUser.role,
-        avatar_url: updatedUser.avatar_url
-            ? `http://localhost:5000${updatedUser.avatar_url}`
-            : null,
-        updated_at: updatedUser.updated_at,
-        };
-
         res.status(200).json({
             message: 'User updated successfully',
-            data: userResponse,
         });
-
     } catch (error) {
         console.error('Error updating user:', error);
         res.status(500).json({ error: 'Failed to update user' });

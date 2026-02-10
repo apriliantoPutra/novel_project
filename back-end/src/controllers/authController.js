@@ -37,7 +37,7 @@ const registerUser = async (req, res) => {
       `
         INSERT INTO users (username, email, password, role, avatar_url)
         VALUES ($1, $2, $3, 'reader', null)
-        RETURNING id, username, email, role, created_at;
+        RETURNING id, username, email, role, avatar_url ;
       `,
       [username, email, hashedPassword]
     );
@@ -54,7 +54,13 @@ const registerUser = async (req, res) => {
     res.status(201).json({
       message: 'User registered and logged in successfully',
       tokenJWT: token,
-      data: user,
+      data: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        avatar_url:  null
+      },
     });
 
   } catch (error) {
@@ -85,8 +91,6 @@ const loginUser= async (req, res)=> {
             return res.status(401).json({error: "Username or password is wrong!"})
         }
 
-        // console.log('JWT_SECRET:', process.env.JWT_SECRET);
-
 
         // buat token JWT
         const token= jwt.sign(
@@ -102,7 +106,8 @@ const loginUser= async (req, res)=> {
                 id: user.id,
                 username: user.username,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                avatar_url: user.avatar_url ? `http://localhost:5000${user.avatar_url}` : null
             }
         });
 
